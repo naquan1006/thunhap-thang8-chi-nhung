@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Thống kê thu nhập tháng 8/2025 – Nhóm Chị Nhung</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #0ea5e9;
+    --accent-2: #22c55e;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    background: var(--bg); color: var(--text);
+  }
+  .app { display: grid; grid-template-columns: 340px 1fr 360px; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .list { display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 160px); overflow: auto; padding-right: 4px; }
+  .item { padding: 10px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); cursor: pointer; transition: .15s; }
+  .item:hover { transform: translateY(-1px); border-color: #cbd5e1; }
+  .item.active { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .item .name { font-weight: 600; }
+  .item .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .calendar { display: grid; grid-template-rows: auto 1fr; gap: 8px; }
+  .month-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .month-header h2 { margin: 0; font-size: 18px; }
+  .weekdays, .weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .weekday { text-align: center; color: var(--muted); font-size: 12px; }
+  .day { aspect-ratio: 1 / 1; border-radius: 10px; padding: 6px; background: var(--card);
+          border: 1px solid var(--border); position: relative; }
+  .day .num { font-weight: 600; }
+  .day.has { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(14,165,233,.25) inset; }
+  .day .badge { position: absolute; bottom: 6px; right: 6px; padding: 2px 6px; font-size: 10px; border-radius: 999px; background: var(--accent); color: white; }
+
+  .info { display: grid; gap: 10px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+  .row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
+  .big { font-size: 22px; font-weight: 800; }
+  .muted { color: var(--muted); }
+  .note { font-size: 12px; color: var(--muted); }
+  .footer-total { margin-top: 8px; padding: 10px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+  @media (max-width: 960px) {
+    body { padding: 10px; }
+    .app { grid-template-columns: 1fr; gap: 12px; }
+    .list { max-height: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <h1>Các lớp/học sinh (8/2025)</h1>
+      <div class="subtitle">*Đã loại trừ R103 – Bơ & Nguyên khỏi danh sách*</div>
+      <div id="classList" class="list"></div>
+    </div>
+
+    <div class="panel calendar">
+      <div class="month-header">
+        <h2>Tháng 8 / 2025</h2>
+        <div class="subtitle">Ngày được <b>tô viền</b> là các buổi đã ghi nhận của lớp đang chọn.</div>
+      </div>
+      <div class="weekdays">
+        <div class="weekday">T2</div>
+        <div class="weekday">T3</div>
+        <div class="weekday">T4</div>
+        <div class="weekday">T5</div>
+        <div class="weekday">T6</div>
+        <div class="weekday">T7</div>
+        <div class="weekday">CN</div>
+      </div>
+      <div id="weeks" class="weeks"></div>
+    </div>
+
+    <div class="panel info">
+      <div class="card">
+        <div class="row"><div class="muted">Lớp đang chọn</div><div id="selName" class="big">—</div></div>
+        <div class="row"><div class="muted">Học phí / buổi</div><div id="selFee">—</div></div>
+        <div class="row"><div class="muted">Số buổi (đã tính phí)</div><div id="selCount">—</div></div>
+        <div class="row"><div class="muted">Tổng lớp</div><div id="selSubtotal" class="big">—</div></div>
+        <div class="note" id="selNote">Chọn một lớp ở bên trái để xem chi tiết & highlight trên lịch.</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:600; margin-bottom:6px;">Công nợ Chị Nhung</div>
+        <div class="note">Đầu kỳ (01/08/2025): <b>3,330,000đ</b></div>
+        <div class="note">Các lần đã trả trong tháng 8:</div>
+        <ul class="note" style="margin:6px 0 8px 18px; padding:0;">
+          <li>08/08/2025 — 1,000,000đ</li><li>15/08/2025 — 1,000,000đ</li>
+        </ul>
+        <div class="note">Tiền đàn trong tháng 8: <b>1,000,000đ</b> (20/08/2025)</div>
+        <div class="row" style="margin-top:8px;"><div><b>Nợ còn lại cuối tháng 8</b></div><div class="big">2,330,000đ</div></div>
+      </div>
+      <div class="footer-total">
+        <div class="row"><div><b>Tổng thu tháng 8 (nhóm Chị Nhung)</b></div><div><b>7,880,000đ</b></div></div>
+        <div class="row"><div><b>Tổng cần thanh toán</b> (thu tháng 8 + công nợ)</div><div class="big">10,210,000đ</div></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const DATA = {
+  "R103 — Khoai": {
+    "code": "R103",
+    "name": "Khoai",
+    "fee": 210000,
+    "count": 5,
+    "subtotal": 1050000,
+    "sessions": [
+      {
+        "date": "2025-08-01",
+        "thu": "Thứ Sáu",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-08",
+        "thu": "Thứ Sáu",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-11",
+        "thu": "Thứ Hai",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-26",
+        "thu": "Thứ Ba",
+        "time": "15:00",
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-29",
+        "thu": "Thứ Sáu",
+        "time": "15:00",
+        "charge": true,
+        "note": "Ghi nhận thủ công"
+      }
+    ]
+  },
+  "R103 — Quang Khang & Nhật Anh": {
+    "code": "R103",
+    "name": "Quang Khang & Nhật Anh",
+    "fee": 250000,
+    "count": 3,
+    "subtotal": 750000,
+    "sessions": [
+      {
+        "date": "2025-08-06",
+        "thu": "Thứ Tư",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-20",
+        "thu": "Thứ Tư",
+        "time": "20:00",
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-27",
+        "thu": "Thứ Tư",
+        "time": "20:00",
+        "charge": true,
+        "note": "Ghi nhận thủ công"
+      }
+    ]
+  },
+  "S105 — Chi & Lâm": {
+    "code": "S105",
+    "name": "Chi & Lâm",
+    "fee": 250000,
+    "count": 8,
+    "subtotal": 2000000,
+    "sessions": [
+      {
+        "date": "2025-08-01",
+        "thu": "Thứ Sáu",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-05",
+        "thu": "Thứ Ba",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-08",
+        "thu": "Thứ Sáu",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-13",
+        "thu": "Thứ Tư",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-15",
+        "thu": "Thứ Sáu",
+        "time": "14:00",
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-19",
+        "thu": "Thứ Ba",
+        "time": "14:30",
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-25",
+        "thu": "Thứ Hai",
+        "time": "14:30",
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-30",
+        "thu": "Thứ Bảy",
+        "time": "10:30",
+        "charge": true,
+        "note": "Ghi nhận thủ công"
+      }
+    ]
+  },
+  "S105 — Khang & Minh & Quyên": {
+    "code": "S105",
+    "name": "Khang & Minh & Quyên",
+    "fee": 300000,
+    "count": 8,
+    "subtotal": 2400000,
+    "sessions": [
+      {
+        "date": "2025-08-02",
+        "thu": "Thứ Bảy",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-06",
+        "thu": "Thứ Tư",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-09",
+        "thu": "Thứ Bảy",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-13",
+        "thu": "Thứ Tư",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-16",
+        "thu": "Thứ Bảy",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-20",
+        "thu": "Thứ Tư",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-23",
+        "thu": "Thứ Bảy",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-27",
+        "thu": "Thứ Tư",
+        "time": "17:30",
+        "charge": true,
+        "note": "Ghi nhận thủ công"
+      }
+    ]
+  },
+  "S203 — Thư & Bỏng": {
+    "code": "S203",
+    "name": "Thư & Bỏng",
+    "fee": 420000,
+    "count": 4,
+    "subtotal": 1680000,
+    "sessions": [
+      {
+        "date": "2025-08-04",
+        "thu": "Thứ Hai",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-11",
+        "thu": "Thứ Hai",
+        "time": null,
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-19",
+        "thu": "Thứ Ba",
+        "time": "18:30",
+        "charge": true,
+        "note": null
+      },
+      {
+        "date": "2025-08-26",
+        "thu": "Thứ Ba",
+        "time": "18:30",
+        "charge": true,
+        "note": null
+      }
+    ]
+  }
+};
+const CALENDAR = {"R103 — Khoai": ["2025-08-01", "2025-08-08", "2025-08-11", "2025-08-26", "2025-08-29"], "R103 — Quang Khang & Nhật Anh": ["2025-08-06", "2025-08-20", "2025-08-27"], "S105 — Chi & Lâm": ["2025-08-01", "2025-08-05", "2025-08-08", "2025-08-13", "2025-08-15", "2025-08-19", "2025-08-25", "2025-08-30"], "S105 — Khang & Minh & Quyên": ["2025-08-02", "2025-08-06", "2025-08-09", "2025-08-13", "2025-08-16", "2025-08-20", "2025-08-23", "2025-08-27"], "S203 — Thư & Bỏng": ["2025-08-04", "2025-08-11", "2025-08-19", "2025-08-26"]};
+
+function fmt(n) { return (n||0).toLocaleString('vi-VN') + 'đ'; }
+
+function buildCalendar() {
+  const weeks = document.getElementById('weeks');
+  weeks.innerHTML = '';
+  const daysInMonth = 31;
+  const jsDow = new Date('2025-08-01').getDay(); // 5 (Fri)
+  const offset = (jsDow + 6) % 7; // Mon-based
+  const totalCells = offset + daysInMonth;
+  for (let i=0;i<totalCells;i++) {
+    const cell = document.createElement('div');
+    cell.className = 'day';
+    if (i >= offset) {
+      const day = i - offset + 1;
+      cell.dataset.date = `2025-08-${String(day).padStart(2,'0')}`;
+      const num = document.createElement('div');
+      num.className = 'num';
+      num.textContent = day;
+      cell.appendChild(num);
+    }
+    weeks.appendChild(cell);
+  }
+}
+
+function setActive(nameKey) {
+  document.querySelectorAll('.item').forEach(el=>el.classList.remove('active'));
+  const target = document.querySelector(`.item[data-key="${nameKey}"]`);
+  if (target) target.classList.add('active');
+
+  const d = DATA[nameKey];
+  document.getElementById('selName').textContent = nameKey;
+  document.getElementById('selFee').textContent = fmt(d.fee);
+  document.getElementById('selCount').textContent = d.count;
+  document.getElementById('selSubtotal').textContent = fmt(d.subtotal);
+
+  document.querySelectorAll('.day').forEach(el=>{ el.classList.remove('has'); const b=el.querySelector('.badge'); if(b) b.remove(); });
+
+  const dates = (CALENDAR[nameKey]||[]);
+  dates.forEach(dt=>{
+    const el = document.querySelector(`.day[data-date="${dt}"]`);
+    if (el) {
+      el.classList.add('has');
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = '✔';
+      el.appendChild(badge);
+    }
+  });
+
+  const ses = d.sessions.map(s => {
+    const t = s.time ? ` — ${s.time}` : '';
+    theNote = s.note ? ` (${s.note})` : '';
+    const paid = s.charge ? '' : ' [không tính]';
+    const dd = s.date.split('-').reverse().join('/');
+    return `${dd}${t}${theNote}${paid}`;
+  }).join('<br/>');
+  document.getElementById('selNote').innerHTML = ses || '—';
+}
+
+function buildList() {
+  const list = document.getElementById('classList');
+  list.innerHTML = '';
+  Object.keys(DATA).sort().forEach(key=>{
+    const v = DATA[key];
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.dataset.key = key;
+    item.innerHTML = `
+      <div class="name">${key}</div>
+      <div class="meta">Phí: ${fmt(v.fee)} · Buổi: ${v.count} · Tổng: <b>${fmt(v.subtotal)}</b></div>
+    `;
+    item.addEventListener('click', ()=> setActive(key));
+    list.appendChild(item);
+  });
+}
+
+buildCalendar();
+buildList();
+const firstKey = Object.keys(DATA)[0];
+if (firstKey) setActive(firstKey);
+</script>
+</body>
+</html>
